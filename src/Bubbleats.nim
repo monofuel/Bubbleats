@@ -109,7 +109,7 @@ proc draw*(self: Bubble, render: RendererPtr) =
   # TODO draw frozen alpha if frozen
 
 proc loadSurface(name: string): SurfacePtr =
-  let filename = name & ".png"
+  let filename = &"../{name}.png"
   echo "loading " & filename
   result = load(filename)
 
