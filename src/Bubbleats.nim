@@ -141,20 +141,23 @@ proc init() =
   loadTextures()
 
   # TODO setup joysticks
+
+  echo "Space is Start (new game)"
+  echo "Tab is Select (show rules)"
     
 
 proc startMatch() =
   echo "Starting Match"
+  mode = GameMode.play
   red = newBubble("red", "smile")
   blue = newBubble("blue", "frown")
   red.pos = vec3(100, WINDOW_RES.y / 2, 0)
   blue.pos = vec3(WINDOW_RES.x - 100, WINDOW_RES.y / 2, 0)
-  mode = GameMode.play
+  nLevel = nLevel + 1
 
 proc gameLoop() =
   var evt = sdl2.defaultEvent
-  var level = textureTable["level1"]
-  var splash = textureTable["splash"]
+  
   while runGame:
     while pollEvent(evt):
       case(evt.kind):
@@ -179,19 +182,22 @@ proc gameLoop() =
     let state = getKeyboardState(addr keyCount)
     if state[uint8(SDL_SCANCODE_SPACE)] == 1 and mode != GameMode.play:
       startmatch()
+    if state[uint8(SDL_SCANCODE_TAB)] == 1 and mode != Gamemode.play:
+      mode = GameMode.rules
 
     render.setDrawColor 0,0,0,255
     render.clear
 
     case mode:
       of GameMode.play:
-        render.copy(level, nil, nil)
+        render.copy(textureTable["level1"], nil, nil)
 
         blue.draw(render)
         red.draw(render)
       of GameMode.splash:
-        render.copy(splash, nil, nil)
-        
+        render.copy(textureTable["splash"], nil, nil)
+      of GameMode.rules:
+        render.copy(textureTable["rules"], nil, nil)
       else: discard
 
     render.present
