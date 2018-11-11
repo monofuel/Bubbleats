@@ -33,6 +33,8 @@ const assets = [
   "frozenbody"
 ]
 
+type GameMode = enum play, splash, redwin, bluewin, rules
+
 # SDL globals
 var
   window: WindowPtr
@@ -70,6 +72,8 @@ type Bubble = ref object of RootObj
 var
   red: Bubble
   blue: Bubble
+  nLevel = 0
+  mode = GameMode.splash
 
 
 proc getGraphicComponent(name: string): GraphicComponent =
@@ -85,6 +89,9 @@ proc newBubble(image: string, face: string): Bubble =
   result.blink = getGraphicComponent(face & "blink")
   result.pos = vec3(0,0,0)
   result.vel = vec3(0,0,0)
+  result.score = 0
+  result.speed = 0.2
+  result.freeze = 0
 
 
 proc draw*(self: Bubble, render: RendererPtr) =
@@ -125,47 +132,67 @@ proc init() =
 
   # setup SDL
   discard sdl2.init(INIT_EVERYTHING)
-  window = createWindow("Bubbleats", 100, 100, cint(WINDOW_RES.x) ,cint(WINDOW_RES.y), SDL_WINDOW_SHOWN)
+  # let sdlFlags = SDL_WINDOW_SHOWN or SDL_WINDOW_RESIZABLE
+  let sdlFlags = SDL_WINDOW_SHOWN
+  window = createWindow("Bubbleats", 100, 100, cint(WINDOW_RES.x) ,cint(WINDOW_RES.y), sdlFlags)
   render = createRenderer(window, -1, Renderer_Accelerated or Renderer_PresentVsync or Renderer_TargetTexture)
   fpsman.init
 
   loadTextures()
 
-  # setup the game
+  # TODO setup joysticks
+    
+
+proc startMatch() =
+  echo "Starting Match"
   red = newBubble("red", "smile")
   blue = newBubble("blue", "frown")
   red.pos = vec3(100, WINDOW_RES.y / 2, 0)
   blue.pos = vec3(WINDOW_RES.x - 100, WINDOW_RES.y / 2, 0)
-
-  # TODO setup joysticks
-    
+  mode = GameMode.play
 
 proc gameLoop() =
   var evt = sdl2.defaultEvent
   var level = textureTable["level1"]
+  var splash = textureTable["splash"]
   while runGame:
     while pollEvent(evt):
-      #echo repr(evt)
-      if evt.kind == QuitEvent:
-        runGame = false
-        break
-      if evt.kind == KeyDown:
-        if evt.key.keysym.sym == K_ESCAPE:
+      case(evt.kind):
+        of QuitEvent:
           runGame = false
-        break
-      if evt.kind == WindowEvent:
-        # TODO
-        break;
+        of KeyDown:
+          if evt.key.keysym.sym == K_ESCAPE:
+            runGame = false
+        of WindowEvent:
+          case evt.window.event:
+            of WindowEvent_Resized:
+              echo "resized"
+              # TODO need to handle resizing gracefully
+            else: discard
+        else:
+          discard
+        
 
     let dt = fpsman.getFramerate() / 1000
+
+    var keyCount = 0;
+    let state = getKeyboardState(addr keyCount)
+    if state[uint8(SDL_SCANCODE_SPACE)] == 1 and mode != GameMode.play:
+      startmatch()
 
     render.setDrawColor 0,0,0,255
     render.clear
 
-    render.copy(level, nil, nil)
+    case mode:
+      of GameMode.play:
+        render.copy(level, nil, nil)
 
-    blue.draw(render)
-    red.draw(render)
+        blue.draw(render)
+        red.draw(render)
+      of GameMode.splash:
+        render.copy(splash, nil, nil)
+        
+      else: discard
 
     render.present
     fpsman.delay
