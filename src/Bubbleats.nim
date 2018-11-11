@@ -1,4 +1,4 @@
-import tables, sdl2, sdl2/gfx, sdl2/image, vmath, random, strformat
+import tables, sdl2, sdl2/gfx, sdl2/image, sdl2/gamecontroller, sdl2/joystick, vmath, random, strformat
 
 # Pigrrl 2 has a 2.8" touch TFT display
 # Pigrrl zero has a 2.2" TFT display
@@ -41,6 +41,9 @@ var
   render: RendererPtr
   runGame = true
   fpsman: FpsManager
+  # controllers may be nil if not plugged in
+  controller1: GameControllerPtr
+  controller2: GameControllerPtr
   surfaceTable = initTable[string, SurfacePtr]()
   textureTable = initTable[string, TexturePtr]()
 
@@ -129,7 +132,7 @@ proc loadTextures() =
     textureTable[asset] = createTextureFromSurface(render, surf)
 
 proc init() =
-
+  echo "\n"
   # setup SDL
   discard sdl2.init(INIT_EVERYTHING)
   # let sdlFlags = SDL_WINDOW_SHOWN or SDL_WINDOW_RESIZABLE
@@ -141,6 +144,17 @@ proc init() =
   loadTextures()
 
   # TODO setup joysticks
+  let joystickCount = numJoysticks();
+  echo &"found {joystickCount} joysticks!"
+  if joystickCount > 0:
+    controller1 = gameControllerOpen(0);
+  if joystickCount > 1:
+    controller2 = gameControllerOpen(1);
+
+  if controller1 == nil:
+    echo "Player 1 controls: WASD to move, Q to jump"
+  if controller2 == nil:
+    echo "Player 2 controls: arrows to move, / to jump"
 
   echo "Space is Start (new game)"
   echo "Tab is Select (show rules)"
@@ -178,11 +192,27 @@ proc gameLoop() =
 
     let dt = fpsman.getFramerate() / 1000
 
+    var start = false;
+    var select = false;
+
+    # handle input
     var keyCount = 0;
     let state = getKeyboardState(addr keyCount)
-    if state[uint8(SDL_SCANCODE_SPACE)] == 1 and mode != GameMode.play:
+
+    if state[uint8(SDL_SCANCODE_SPACE)] == 1 or
+      (controller1 != nil and getButton(controller1, SDL_CONTROLLER_BUTTON_START) != 0) or
+      (controller2 != nil and getButton(controller2, SDL_CONTROLLER_BUTTON_START) != 0):
+      start = true;
+    if state[uint8(SDL_SCANCODE_TAB)] == 1 or
+      (controller1 != nil and getButton(controller1, SDL_CONTROLLER_BUTTON_BACK) != 0) or
+      (controller2 != nil and getButton(controller2, SDL_CONTROLLER_BUTTON_BACK) != 0):
+      select = true;
+
+
+    # handle game mode changes
+    if start and mode != GameMode.play:
       startmatch()
-    if state[uint8(SDL_SCANCODE_TAB)] == 1 and mode != Gamemode.play:
+    if select and mode != Gamemode.play:
       mode = GameMode.rules
 
     render.setDrawColor 0,0,0,255
