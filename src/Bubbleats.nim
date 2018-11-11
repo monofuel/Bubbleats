@@ -118,6 +118,8 @@ proc draw*(self: Bubble, render: RendererPtr) =
 
   # TODO draw frozen alpha if frozen
 
+
+
 proc loadSurface(name: string): SurfacePtr =
   let filename = &"./{name}.png"
   echo "loading " & filename
@@ -167,7 +169,58 @@ proc startMatch() =
   blue = newBubble("blue", "frown")
   red.pos = vec3(100, WINDOW_RES.y / 2, 0)
   blue.pos = vec3(WINDOW_RES.x - 100, WINDOW_RES.y / 2, 0)
-  nLevel = nLevel + 1
+  nLevel += 1
+
+proc handleInput(bubble: Bubble, controller: GameControllerPtr) =
+  var xAxis = 0.0
+  var yAxis = 0.0
+  if controller != nil:
+    xAxis = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767
+    yAxis = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767
+    if getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT) != 0:
+      xAxis = -1
+    if getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) != 0:
+      xAxis = 1
+    if getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN) != 0:
+      yAxis = 1
+    if getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP) != 0:
+      yAxis = -1
+
+    # TODO keyboard controls
+  echo &"xAxis: {xAxis}, yAxis: {yAxis}"
+  bubble.vel[0] += xAxis * bubble.speed
+  bubble.vel[1] += yAxis * bubble.speed
+
+  # TODO jumping
+  # TODO blink button
+
+proc handlePhysics(b: Bubble) =
+  if b.freeze > 0:
+    b.vel *= 0
+    b.freeze -= 1
+  else:
+    b.pos += b.vel
+  if b.speed < 0.05:
+    b.speed = 0.05
+
+  if b.pos[0] < 50:
+    b.pos[0] = 50
+  if b.pos[0] > WINDOW_RES.x - 50:
+    b.pos[0] = WINDOW_RES.x - 50
+
+  if b.pos[1] < 50:
+    b.pos[1] = 50
+  if b.pos[1] > WINDOW_RES.y - 50:
+    b.pos[1] = WINDOW_RES.y - 50
+
+  if b.pos[2] > 0:
+    b.vel[2] -= 0.4
+  if b.pos[2] < 0:
+    b.pos[2] = 0
+    b.vel[2] = 0
+
+  b.pos += b.vel * 2
+  b.vel *= 0.9
 
 proc gameLoop() =
   var evt = sdl2.defaultEvent
@@ -220,6 +273,16 @@ proc gameLoop() =
 
     case mode:
       of GameMode.play:
+
+        handleInput(blue, controller1)
+        handleInput(red, controller2)
+
+        handlePhysics(blue)
+        handlePhysics(red)
+
+        # TODO bubbles
+
+        # game mode rendering
         render.copy(textureTable["level1"], nil, nil)
 
         blue.draw(render)
