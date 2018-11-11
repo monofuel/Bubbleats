@@ -109,7 +109,7 @@ proc draw*(self: Bubble, render: RendererPtr) =
   # TODO draw frozen alpha if frozen
 
 proc loadSurface(name: string): SurfacePtr =
-  let filename = &"../{name}.png"
+  let filename = &"./{name}.png"
   echo "loading " & filename
   result = load(filename)
 
@@ -145,9 +145,17 @@ proc gameLoop() =
   var level = textureTable["level1"]
   while runGame:
     while pollEvent(evt):
+      #echo repr(evt)
       if evt.kind == QuitEvent:
         runGame = false
         break
+      if evt.kind == KeyDown:
+        if evt.key.keysym.sym == K_ESCAPE:
+          runGame = false
+        break
+      if evt.kind == WindowEvent:
+        # TODO
+        break;
 
     let dt = fpsman.getFramerate() / 1000
 
