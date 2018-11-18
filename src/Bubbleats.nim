@@ -105,7 +105,7 @@ var
   falling: ptr Chunk
   win: ptr Chunk
 
-const WIN_BY = 1
+const WIN_BY = 5
 
 proc getGraphicComponent(name: string): GraphicComponent =
   new(result)
