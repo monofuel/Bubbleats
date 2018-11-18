@@ -4,7 +4,8 @@
 
 # Debian deps
 
-- `apt install -y libsdl2-gfx-dev`
+for some reason, libsdl2-gfx-2.0-0 is missing?
+- `apt install -y libsdl2-gfx-dev libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0`
 
 # Retropie
 
